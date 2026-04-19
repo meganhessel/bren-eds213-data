@@ -7,7 +7,6 @@
 CREATE TEMP TABLE mytable (
     colname REAL );
 
-
 -- 2.  Insert some real numbers and at least one NULL into the table.
 INSERT INTO mytable (colname)
    VALUES (1),
@@ -26,10 +25,10 @@ SELECT AVG(colname) FROM mytable;
 
 -- Compute the average value without AVG 
 SELECT SUM(colname)/COUNT(*) FROM mytable;
--- returns: 2.4 - Factored NULL in 
+-- returns: 2.4 - Factored NULLs in because counted all the values with (*) = 12/5.
 
 SELECT SUM(colname)/COUNT(colname) FROM mytable;
--- returns: 3.0 - Ignored NULL
+-- returns: 3.0 -- CORRECT ONE -- Ignored NULLs because counted the real (non-NULL) values in the column = 12/4. 
 
 -- Delete the table 
 DROP TABLE mytable;
