@@ -1,0 +1,110 @@
+---
+title: "dbplyr"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(DBI)
+library(duckdb)
+library(dbplyr)
+```
+
+## Connection to a database 
+```{r}
+conn <- DBI::dbConnect(duckdb::duckdb(),  # connecting to duckdb 
+                       dbdir = "database/database.duckdb") # Connect to database on the drive
+
+conn
+```
+
+Look at the tables
+```{r}
+DBI::dbListTables(conn)
+```
+
+Look at one table 
+```{r}
+species <- tbl(conn, "Species") # 
+species
+```
+
+Get list of species that start with "a"
+-  no semi colon 
+-  Need to use '%'
+```{r}
+species_a <- dbGetQuery(conn, "SELECT * FROM Species WHERE Code LIKE 'a%'")
+species_a
+```
+
+## Dbplyr 
+
+```{r}
+# On object, apply tidyverse functions to select what you want 
+species %>% 
+  filter(Relevance == "Study species") %>% 
+  select(Code, Scientific_name) %>% 
+  arrange(Scientific_name) %>% 
+  head(5) 
+
+# SQL Code for tidyverse functions 
+species %>% 
+  filter(Relevance == "Study species") %>% 
+  select(Code, Scientific_name) %>% 
+  arrange(Scientific_name) %>% 
+  head(5) %>% 
+  show_query() # Look at SQL query code - SOOOO COOOOOL  
+
+
+# Create a dataframe 
+species %>% 
+  filter(Relevance == "Study species") %>% 
+  select(Code, Scientific_name) %>% 
+  arrange(Scientific_name) %>% 
+  head(5) %>% 
+  collect()  # Create a dataframe 
+
+```
+
+Lets do a group_by summarise 
+```{r}
+species %>% 
+  group_by(Relevance) %>% 
+  summarise(nam_species = n()) %>% 
+  #show_query() %>% 
+  collect()
+```
+
+Lets mutate 
+```{r}
+species_x <- species %>%## Sets dataframe, but is read only did not update df.
+  mutate(Xcode = paste('X_', Code)) %>% 
+  collect()
+```
+
+Join 
+```{r}
+eggs_db <- tbl(conn, 'Bird_eggs')
+
+nest_db <- tbl(conn, 'Bird_nests')
+```
+
+```{r}
+nest_db %>% 
+  left_join(eggs_db, by = 'Nest_ID')
+```
+
+```{r}
+nest_db %>% 
+  left_join(eggs_db, by = 'Nest_ID', keep = FALSE) %>% 
+  head(4) %>% 
+  # show_query()
+  collect()
+```
+
+## Cloing the connection 
+```{r}
+DBI::dbDisconnect(conn, shutdown = TRUE)
+```
+
+
