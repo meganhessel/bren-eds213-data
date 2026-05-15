@@ -1,0 +1,74 @@
+---
+title: "wk6_hw"
+format: html
+author: "Megan Hessel"
+---
+Load libraries
+```{r}
+library(tidyverse)
+library(DBI)
+library(duckdb)
+library(dbplyr)
+```
+
+Make database connection
+```{r}
+conn <- DBI::dbConnect(duckdb::duckdb(),  # connecting to duckdb 
+                       dbdir = "database/database.duckdb") # Connect to database on the drive
+
+# Look at the tables 
+DBI::dbListTables(conn)
+```
+
+Get the tables 
+```{r}
+egg_table <- tbl(conn, "Bird_eggs")
+
+personnel <- tbl(conn, "Personnel")
+
+bird_nests <- tbl(conn, "Bird_nests")
+```
+
+## Week 6.1 - Who were the winners?
+
+Observers who measured the most eggs
+
+```{r}
+# Try 1 - Did not filter correctly :( 
+egg_table %>% 
+  # Join necessary tables 
+  left_join(bird_nests, by = "Nest_ID") %>% 
+  left_join(personnel, by = c("Observer" = "Abbreviation")) %>% 
+  # Group & summarose 
+  group_by(Name) %>% 
+  summarise(total_eggs = sum(Egg_num, na.rm = TRUE)) %>% 
+  # Style choices 
+  head(3) %>% 
+  arrange(desc(total_eggs)) %>% 
+  # Get the query 
+  show_query()
+
+
+# Try 2 
+egg_table %>% 
+  # Join bird nest and count up eggs 
+  left_join(bird_nests, by = "Nest_ID") %>% 
+  group_by(Observer) %>% 
+  summarise(total_eggs = n()) %>% 
+  # Join personnel
+  left_join(personnel, by = c("Observer" = "Abbreviation")) %>%
+  # Select necessary columns and style choices 
+  select(Name, total_eggs) %>% 
+  arrange(desc(total_eggs)) %>% 
+  head(3) %>% 
+  # Get the query 
+  show_query()
+
+```
+
+I used one big R statement with multiple pipes. 
+`Show_query()` made one **huge** query with no temporary table. 
+The query has the SQL `LIMIT 3` clause while my dplyr workflow has `head(3)`.
+
+
+
